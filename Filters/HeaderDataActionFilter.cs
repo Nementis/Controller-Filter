@@ -79,8 +79,6 @@ namespace ControllerFilter.Filters {
 							if ( currentHeaders.Count == 0 ) {
 								if ( currentPropertyAttribute.Required ) {
 									FormatErrorResult( context, "Request Headers Parsing Error", $"Required Header {completeHeaderName} not found in request headers" );
-
-									break;
 								}
 							}
 							else {
@@ -89,9 +87,7 @@ namespace ControllerFilter.Filters {
 									controllerPropertyInfo.SetValue( context.Controller, propertyTypeConverter.ConvertFromString( currentHeaders.First() ) );
 								}
 								catch ( Exception ex ) {
-									FormatErrorResult( context, "Controller Properties Set Error", $"Error while setting {controllerPropertiesInfo.GetType().Name} property value for controller {context.Controller.GetType().Name}", ex.Message );
-
-									break;
+									FormatErrorResult( context, "Controller Properties Set Error", $"Error while setting {controllerPropertyInfo.Name} property value for controller {context.Controller.GetType().Name} from header {completeHeaderName}", ex.Message );
 								}
 							}
 						}
@@ -99,19 +95,19 @@ namespace ControllerFilter.Filters {
 				}
 			}
 
-			if ( context.Result is null ) {
+			if ( context.ModelState.IsValid) {
 				await next();
 			}
-
+			else {
+				context.Result = new BadRequestObjectResult(context.ModelState);
+			}
 		}
 
 		#endregion
 
 		private void FormatErrorResult( ActionExecutingContext context, string title, string message, string exceptionMessage = null ) {
-			context.Result = new BadRequestObjectResult( new ProblemDetails {
-				Title = title,
-				Detail = $"{message}. {( exceptionMessage != null ? "Detailed exception message: " + exceptionMessage : "" )}"
-			} );
+
+			context.ModelState.AddModelError( title, $"{message}. {(exceptionMessage != null ? "Detailed exception message: " + exceptionMessage : "")}");
 		}
 
 	}
