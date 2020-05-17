@@ -1,0 +1,42 @@
+{
+	"info": {
+		"_postman_id": "92f26f91-ff13-4b99-9e1e-f737521d9efc",
+		"name": "Content Filter",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Controller Filter Test",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "CFX-Base-IntegerProperty",
+						"value": "13A",
+						"type": "text"
+					},
+					{
+						"key": "CFX-Base-StringProperty",
+						"value": "pippo",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "https://localhost:5001/api/Echo",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"api",
+						"Echo"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}

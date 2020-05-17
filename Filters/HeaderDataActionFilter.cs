@@ -20,19 +20,17 @@ namespace ControllerFilter.Filters {
 		#region Interface Implementations
 
 		public async Task OnActionExecutionAsync( ActionExecutingContext context, ActionExecutionDelegate next ) {
-			FilterControllerAttribute[] controllerAttributes;
+			FilterControllerAttribute[] controllerAttributes = default;
 
 			try {
 				controllerAttributes = context.Controller.GetType().GetCustomAttributes<FilterControllerAttribute>( true ).ToArray();
 			}
 			catch ( Exception ex ) {
 				FormatErrorResult( context, "Controller Validation Error", "Error while retrieving controller metadata information", ex.Message );
-
-				return;
 			}
 
 			//=== If the current controller is decorated with a Filter Controller attribute continue to read its metadata
-			if ( controllerAttributes.Any() ) {
+			if ( controllerAttributes?.Any() ?? false ) {
 				var currentControllerAttribute = controllerAttributes.First();
 
 				//=== header prefix, if present will be used later to build header name
@@ -42,34 +40,44 @@ namespace ControllerFilter.Filters {
 					headerPrefix = currentControllerAttribute.HeaderPrefix;
 				}
 
-				PropertyInfo[] controllerPropertiesInfo;
+				PropertyInfo[] controllerPropertiesInfo = default;
 
 				try {
 					controllerPropertiesInfo = context.Controller.GetType().GetProperties();
 				}
 				catch ( Exception ex ) {
-					FormatErrorResult( context, "Controller Properties Validation Error", "Error while retrieving controller properties metadata information", ex.Message );
-
-					return;
+					FormatErrorResult( context,
+						"Controller Properties Validation Error", 
+						"Error while retrieving controller properties metadata information",
+						ex.Message );
 				}
 
 				//=== If the current controller has public properties enumerate them
-				if ( controllerPropertiesInfo.Length > 0 ) {
+				if ( controllerPropertiesInfo?.Any() ?? false ) {
 					foreach ( var controllerPropertyInfo in controllerPropertiesInfo ) {
-						FilterPropertyAttribute[] propertiesAttributes;
+						FilterPropertyAttribute[] propertiesAttributes = default;
 
 						try {
 							propertiesAttributes = controllerPropertyInfo.GetCustomAttributes<FilterPropertyAttribute>( true ).ToArray();
 						}
 						catch ( Exception ex ) {
-							FormatErrorResult( context, "Controller Properties Attributes Validation Error", "Error while retrieving controller properties attributes metadata information", ex.Message );
-
-							return;
+							FormatErrorResult( context,
+								"Controller Properties Attributes Validation Error",
+								"Error while retrieving controller properties attributes metadata information",
+								ex.Message );
 						}
 
 						//=== If the current property is decorated with a Filter Property attribute continue to read its metadata
-						if ( propertiesAttributes.Any() ) {
+						if ( propertiesAttributes?.Any() ?? false ) {
 							var currentPropertyAttribute = propertiesAttributes.First();
+
+							if ( string.IsNullOrEmpty( currentPropertyAttribute.HeaderName ) ) {
+								FormatErrorResult(context,
+									"Controller Properties Attributes Validation Error",
+									$"Error while retrieving {controllerPropertyInfo.Name} property attributes metadata information" );
+
+								continue;
+							}
 
 							var headerName = currentPropertyAttribute.HeaderName;
 
@@ -78,20 +86,28 @@ namespace ControllerFilter.Filters {
 
 							if ( currentHeaders.Count == 0 ) {
 								if ( currentPropertyAttribute.Required ) {
-									FormatErrorResult( context, "Request Headers Parsing Error", $"Required Header {completeHeaderName} not found in request headers" );
-
-									break;
+									FormatErrorResult( context,
+										"Request Headers Parsing Error",
+										$"Required Header {completeHeaderName} not found in request headers" );
 								}
 							}
 							else {
-								try {
+								if (currentHeaders.Count > 1) {
+									FormatErrorResult(context,
+										"Request Headers Parsing Error",
+										$"Header {completeHeaderName} defined more than once in request headers");
+								}
+
+								try
+								{
 									var propertyTypeConverter = TypeDescriptor.GetConverter( controllerPropertyInfo.PropertyType );
 									controllerPropertyInfo.SetValue( context.Controller, propertyTypeConverter.ConvertFromString( currentHeaders.First() ) );
 								}
 								catch ( Exception ex ) {
-									FormatErrorResult( context, "Controller Properties Set Error", $"Error while setting {controllerPropertiesInfo.GetType().Name} property value for controller {context.Controller.GetType().Name}", ex.Message );
-
-									break;
+									FormatErrorResult( context,
+										"Controller Properties Set Error",
+										$"Error while setting {controllerPropertyInfo.Name} property value for controller {context.Controller.GetType().Name} from header {completeHeaderName}",
+										ex.Message );
 								}
 							}
 						}
@@ -99,19 +115,19 @@ namespace ControllerFilter.Filters {
 				}
 			}
 
-			if ( context.Result is null ) {
+			if ( context.ModelState.IsValid ) {
 				await next();
 			}
-
+			else {
+				context.Result = new BadRequestObjectResult( context.ModelState );
+			}
 		}
 
 		#endregion
 
 		private void FormatErrorResult( ActionExecutingContext context, string title, string message, string exceptionMessage = null ) {
-			context.Result = new BadRequestObjectResult( new ProblemDetails {
-				Title = title,
-				Detail = $"{message}. {( exceptionMessage != null ? "Detailed exception message: " + exceptionMessage : "" )}"
-			} );
+
+			context.ModelState.AddModelError( title, $"{message}. {(exceptionMessage != null ? "Detailed exception message: " + exceptionMessage : "")}");
 		}
 
 	}
