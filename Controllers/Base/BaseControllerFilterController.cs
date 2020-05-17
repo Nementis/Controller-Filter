@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ControllerFilter.Controllers.Base {
 
-	[FilterController( HeaderPrefix = "Base" )]
+	[FilterController(HeaderPrefix = "Base")]
 	public class BaseControllerFilterController : ControllerBase {
 
 		#region Public Properties
@@ -11,7 +11,7 @@ namespace ControllerFilter.Controllers.Base {
 		[FilterProperty( "IntegerProperty", Required = true )]
 		public int IntegerProperty { get; set; }
 
-		[FilterProperty( "StringProperty", Required = false )]
+		[FilterProperty( "StringProperty", Required = true )]
 		public string StringProperty { get; set; }
 
 		#endregion
