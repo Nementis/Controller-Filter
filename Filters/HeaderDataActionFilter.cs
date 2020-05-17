@@ -71,6 +71,14 @@ namespace ControllerFilter.Filters {
 						if ( propertiesAttributes?.Any() ?? false ) {
 							var currentPropertyAttribute = propertiesAttributes.First();
 
+							if ( string.IsNullOrEmpty( currentPropertyAttribute.HeaderName ) ) {
+								FormatErrorResult(context,
+									"Controller Properties Attributes Validation Error",
+									$"Error while retrieving {controllerPropertyInfo.Name} property attributes metadata information" );
+
+								continue;
+							}
+
 							var headerName = currentPropertyAttribute.HeaderName;
 
 							var completeHeaderName = $"{AppHeaderPrefix}{( string.IsNullOrEmpty( headerPrefix ) ? null : "-" + headerPrefix )}-{headerName}";
@@ -84,7 +92,14 @@ namespace ControllerFilter.Filters {
 								}
 							}
 							else {
-								try {
+								if (currentHeaders.Count > 1) {
+									FormatErrorResult(context,
+										"Request Headers Parsing Error",
+										$"Header {completeHeaderName} defined more than once in request headers");
+								}
+
+								try
+								{
 									var propertyTypeConverter = TypeDescriptor.GetConverter( controllerPropertyInfo.PropertyType );
 									controllerPropertyInfo.SetValue( context.Controller, propertyTypeConverter.ConvertFromString( currentHeaders.First() ) );
 								}
