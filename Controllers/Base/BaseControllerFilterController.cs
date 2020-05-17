@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ControllerFilter.Controllers.Base {
 
-	[FilterController( HeaderPrefix = "Base" )]
+	[FilterController(HeaderPrefix = "Base")]
 	public class BaseControllerFilterController : ControllerBase {
 
 		#region Public Properties
